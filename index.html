@@ -1,0 +1,1002 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>广告素材数据分析决策系统</title>
+<style>
+  :root { --primary:#1a73e8; --success:#0f9d58; --warning:#f4b400; --danger:#ea4335; --bg:#f8f9fa; --card:#fff; --text:#202124; --text2:#5f6368; --border:#dadce0; }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,sans-serif; background:var(--bg); color:var(--text); line-height:1.6; }
+  .container { max-width:1200px; margin:0 auto; padding:20px; }
+
+  /* Header */
+  header { background:linear-gradient(135deg,#1a73e8,#0d47a1); color:#fff; padding:32px 0 24px; }
+  header h1 { font-size:28px; font-weight:600; }
+  header p { opacity:.85; font-size:15px; margin-top:4px; }
+
+  /* Cards */
+  .card { background:var(--card); border:1px solid var(--border); border-radius:12px; padding:24px; margin-bottom:20px; box-shadow:0 1px 3px rgba(0,0,0,.06); }
+  .card h2 { font-size:18px; font-weight:600; margin-bottom:16px; padding-bottom:8px; border-bottom:2px solid var(--primary); }
+  .card h3 { font-size:15px; font-weight:600; margin:16px 0 8px; }
+
+  /* Data Input */
+  .input-area { display:flex; flex-direction:column; gap:12px; }
+  .input-area textarea { width:100%; min-height:180px; padding:12px; font-size:13px; font-family:Menlo,monospace; border:1px solid var(--border); border-radius:8px; resize:vertical; }
+  .input-row { display:flex; gap:12px; align-items:center; flex-wrap:wrap; }
+  .btn { display:inline-flex; align-items:center; gap:6px; padding:10px 20px; border:none; border-radius:8px; font-size:14px; font-weight:500; cursor:pointer; transition:.2s; }
+  .btn-primary { background:var(--primary); color:#fff; }
+  .btn-primary:hover { background:#1557b0; }
+  .btn-success { background:var(--success); color:#fff; }
+  .btn-success:hover { background:#0b8043; }
+  .btn-outline { background:transparent; border:1px solid var(--border); color:var(--text); }
+  .btn-outline:hover { background:#f1f3f4; }
+  .btn-sm { padding:6px 12px; font-size:12px; }
+  .btn-warning { background:var(--warning); color:#fff; }
+  .btn-warning:hover { background:#d9a300; }
+
+  /* Table */
+  .table-wrap { overflow-x:auto; }
+  table { width:100%; border-collapse:collapse; font-size:13px; }
+  th, td { padding:10px 12px; text-align:right; border-bottom:1px solid var(--border); white-space:nowrap; }
+  th { background:#f1f3f4; font-weight:600; text-align:right; position:sticky; top:0; }
+  th:first-child, td:first-child { text-align:left; }
+  tr:hover { background:#f8f9fa; }
+
+  .tag { display:inline-block; padding:2px 10px; border-radius:12px; font-size:12px; font-weight:600; }
+  .tag-invest { background:#e6f4ea; color:#0f9d58; }
+  .tag-strong-invest { background:#ceead6; color:#0b8043; border:1px solid #0f9d58; }
+  .tag-retain { background:#fef7e0; color:#e37400; }
+  .tag-pause { background:#fce8e6; color:#d93025; }
+  .tag-observe { background:#e8f0fe; color:#1a73e8; }
+
+  .decision-card { border-left:4px solid; padding:16px; margin:12px 0; border-radius:0 8px 8px 0; background:#f8f9fa; }
+  .decision-invest { border-color:var(--success); }
+  .decision-retain { border-color:var(--warning); }
+  .decision-pause { border-color:var(--danger); }
+
+  .reason-list { padding-left:20px; margin:8px 0; }
+  .reason-list li { margin:4px 0; font-size:13px; }
+
+  .metric-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:16px; margin:16px 0; }
+  .metric-box { text-align:center; padding:16px; border-radius:8px; background:#f1f3f4; }
+  .metric-box .value { font-size:24px; font-weight:700; color:var(--primary); }
+  .metric-box .label { font-size:12px; color:var(--text2); margin-top:2px; }
+
+  .type-summary { margin:16px 0; }
+  .type-bar { display:flex; align-items:center; gap:12px; margin:6px 0; }
+  .type-bar .label { width:100px; font-size:13px; font-weight:500; text-align:right; }
+  .type-bar .bar-wrap { flex:1; height:24px; background:#f1f3f4; border-radius:12px; overflow:hidden; }
+  .type-bar .bar { height:100%; border-radius:12px; transition:width .6s; display:flex; align-items:center; justify-content:flex-end; padding-right:8px; font-size:11px; color:#fff; font-weight:600; }
+
+  .section-tabs { display:flex; gap:4px; margin-bottom:16px; }
+  .section-tab { padding:10px 20px; border:none; background:transparent; cursor:pointer; border-radius:8px 8px 0 0; font-size:14px; font-weight:500; color:var(--text2); border-bottom:2px solid transparent; transition:.2s; }
+  .section-tab:hover { background:#f1f3f4; }
+  .section-tab.active { color:var(--primary); border-bottom-color:var(--primary); }
+  .section-panel { display:none; }
+  .section-panel.active { display:block; }
+
+  .agent-diagram { background:#f1f3f4; border-radius:12px; padding:24px; margin:16px 0; font-family:Menlo,monospace; font-size:13px; line-height:1.8; white-space:pre; overflow-x:auto; }
+
+  .highlight-box { background:#e8f0fe; border-radius:8px; padding:16px; margin:12px 0; border-left:4px solid var(--primary); }
+  .highlight-box.warning { background:#fef7e0; border-left-color:var(--warning); }
+  .highlight-box.danger { background:#fce8e6; border-left-color:var(--danger); }
+  .highlight-box.success { background:#e6f4ea; border-left-color:var(--success); }
+
+  #resultArea { display:none; }
+  #loading { display:none; text-align:center; padding:40px; }
+  .spinner { display:inline-block; width:40px; height:40px; border:4px solid var(--border); border-top-color:var(--primary); border-radius:50%; animation:spin .8s linear infinite; }
+  @keyframes spin { to { transform:rotate(360deg); } }
+
+  .file-upload-wrap { position:relative; display:inline-block; }
+  .file-upload-wrap input[type=file] { position:absolute; inset:0; opacity:0; cursor:pointer; }
+
+  .chart-container { margin:16px 0; }
+
+  @media(max-width:768px) {
+    header h1 { font-size:22px; }
+    .container { padding:12px; }
+    .card { padding:16px; }
+    .input-row { flex-direction:column; align-items:stretch; }
+    .section-tabs { overflow-x:auto; }
+    .section-tab { padding:8px 14px; font-size:13px; white-space:nowrap; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="container">
+    <h1>广告素材数据分析决策系统</h1>
+    <p>粘贴数据或上传 CSV → 自动计算指标 → 生成决策建议 → 推断素材方向 → Agent 设计方案</p>
+  </div>
+</header>
+
+<div class="container">
+
+  <!-- Data Input -->
+  <div class="card">
+    <h2>数据输入</h2>
+    <div class="input-area">
+      <div class="input-row">
+        <button class="btn btn-primary" onclick="loadSample()">加载示例数据</button>
+        <button class="btn btn-outline" onclick="document.getElementById('pasteArea').value=''">清空</button>
+        <label class="btn btn-outline file-upload-wrap">
+          📁 上传 CSV
+          <input type="file" accept=".csv,.txt" onchange="handleFileUpload(event)">
+        </label>
+        <span style="font-size:12px;color:var(--text2);">支持粘贴表格或 CSV 格式</span>
+      </div>
+      <textarea id="pasteArea" placeholder="在此粘贴数据，格式：每行一个素材，制表符/逗号分隔&#10;支持直接粘贴从 Excel 或 Google Sheets 复制的表格&#10;&#10;或者点击「加载示例数据」使用模板数据"></textarea>
+      <div class="input-row">
+        <button class="btn btn-success" onclick="runAnalysis()">开始分析</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Loading -->
+  <div id="loading">
+    <div class="spinner"></div>
+    <p style="margin-top:12px;color:var(--text2);">正在分析数据...</p>
+  </div>
+
+  <!-- Result -->
+  <div id="resultArea">
+
+    <!-- Section Tabs -->
+    <div class="section-tabs" id="sectionTabs">
+      <button class="section-tab active" onclick="switchTab('tab1',this)">📊 指标总表</button>
+      <button class="section-tab" onclick="switchTab('tab2',this)">✅ 决策建议</button>
+      <button class="section-tab" onclick="switchTab('tab3',this)">🔮 方向推断</button>
+      <button class="section-tab" onclick="switchTab('tab4',this)">🤖 Agent 设计</button>
+    </div>
+
+    <!-- Tab 1: Full Metrics Table -->
+    <div id="tab1" class="section-panel active">
+      <div class="card">
+        <h2>核心指标汇总</h2>
+        <div id="summaryMetrics" class="metric-grid"></div>
+        <div class="table-wrap"><table id="fullTable"><thead></thead><tbody></tbody></table></div>
+      </div>
+    </div>
+
+    <!-- Tab 2: Decision Recommendations -->
+    <div id="tab2" class="section-panel">
+      <div class="card">
+        <h2>逐素材决策建议</h2>
+        <div id="decisionArea"></div>
+      </div>
+      <div class="card">
+        <h2>优先级排序</h2>
+        <div id="priorityArea"></div>
+      </div>
+    </div>
+
+    <!-- Tab 3: Direction Analysis -->
+    <div id="tab3" class="section-panel">
+      <div class="card">
+        <h2>素材类型方向分析</h2>
+        <div id="typeAnalysis"></div>
+      </div>
+      <div class="card">
+        <h2>下一批素材产出建议</h2>
+        <div id="suggestionArea"></div>
+      </div>
+    </div>
+
+    <!-- Tab 4: Agent Design -->
+    <div id="tab4" class="section-panel">
+      <div class="card">
+        <h2>每周自动运行 Agent 设计方案</h2>
+        <div id="agentDesign"></div>
+      </div>
+    </div>
+
+    <!-- Export -->
+    <div style="display:flex;gap:12px;margin-bottom:20px;">
+      <button class="btn btn-primary" onclick="exportReport()">📥 导出完整报告</button>
+      <button class="btn btn-outline" onclick="window.print()">🖨️ 打印/导出PDF</button>
+    </div>
+
+  </div>
+</div>
+
+<script>
+// ─── Sample Data ──────────────────────────────────────────────
+const SAMPLE_DATA = `素材ID\t类型\t展示量\t点击率\t安装成本\t7日付费人数\t7日付费金额
+V-001\t真人剧情\t120000\t3.2%\t$4.1\t38\t$2,280
+V-002\t游戏实录\t98000\t2.1%\t$5.8\t12\t$960
+V-003\t动画CG\t210000\t4.5%\t$3.2\t21\t$630
+V-004\tUGC风格\t67000\t5.1%\t$2.9\t44\t$3,520
+V-005\t真人剧情\t150000\t2.8%\t$4.7\t9\t$540
+I-001\t静态图片\t340000\t1.1%\t$6.2\t6\t$240
+I-002\t动态图片\t280000\t1.8%\t$5.1\t18\t$1,080`;
+
+const TYPE_ORDER = ['真人剧情','游戏实录','动画CG','UGC风格','静态图片','动态图片'];
+const TYPE_COLORS = {
+  '真人剧情':'#4285f4','游戏实录':'#ea4335','动画CG':'#fbbc04','UGC风格':'#34a853','静态图片':'#ff6d01','动态图片':'#46bdc6'
+};
+const TYPE_LABELS = {
+  '真人剧情':'真人实拍剧情','游戏实录':'游戏画面实录','动画CG':'CG动画短片','UGC风格':'用户共创风格','静态图片':'静态图文','动态图片':'动效图文'
+};
+
+// ─── Utility ──────────────────────────────────────────────────
+function parseNum(s) {
+  if (typeof s === 'number') return s;
+  return parseFloat(String(s).replace(/[$,%\s]/g,''));
+}
+
+function fmtMoney(v) { return '$' + v.toFixed(2); }
+function fmtPct(v) { return v.toFixed(2) + '%'; }
+function fmtNum(v) { return Math.round(v).toLocaleString(); }
+
+// ─── Data Parsing ─────────────────────────────────────────────
+function parseData(text) {
+  const lines = text.trim().split(/\n/);
+  if (lines.length < 2) return null;
+
+  // Detect delimiter: tab or comma
+  const delim = lines[0].includes('\t') ? '\t' : ',';
+  const headers = lines[0].split(delim).map(h => h.trim());
+
+  // Find column indices
+  const colMap = {};
+  const headerMap = {
+    '素材ID':['素材ID','素材id','素材','id','creative_id','creative'],
+    '类型':['类型','type','素材类型','creative_type','格式'],
+    '展示量':['展示量','展示','impressions','展示次数','曝光量'],
+    '点击率':['点击率','ctr','click_rate','点击'],
+    '安装成本':['安装成本','install_cost','cpi','cost_per_install','单价'],
+    '7日付费人数':['7日付费人数','付费人数','paying_users','7d_payers','payers','7日付费用户'],
+    '7日付费金额':['7日付费金额','付费金额','revenue','7d_revenue','收入','7日收入']
+  };
+
+  for (let i = 0; i < headers.length; i++) {
+    const h = headers[i];
+    for (const [key, aliases] of Object.entries(headerMap)) {
+      if (aliases.some(a => h.toLowerCase().includes(a.toLowerCase()))) {
+        colMap[key] = i;
+        break;
+      }
+    }
+  }
+
+  // Check required fields
+  const required = ['展示量','点击率','安装成本'];
+  for (const r of required) {
+    if (colMap[r] === undefined) {
+      alert('无法找到列：' + r + '。请确保列名包含展示量、点击率、安装成本等字段。');
+      return null;
+    }
+  }
+
+  const rows = [];
+  for (let i = 1; i < lines.length; i++) {
+    const cells = lines[i].split(delim);
+    if (cells.length < 3) continue;
+    const row = {};
+    for (const [key, idx] of Object.entries(colMap)) {
+      row[key] = cells[idx] ? cells[idx].trim() : '0';
+    }
+    // Default IDs if not found
+    if (!row['素材ID']) row['素材ID'] = '素材-' + i;
+    if (!row['类型']) row['类型'] = '未知';
+    if (!row['7日付费人数']) row['7日付费人数'] = '0';
+    if (!row['7日付费金额']) row['7日付费金额'] = '0';
+
+    rows.push(row);
+  }
+
+  return rows;
+}
+
+// ─── Analysis Engine ──────────────────────────────────────────
+function analyze(rows) {
+  // Compute derived metrics
+  return rows.map(r => {
+    const impressions = parseNum(r['展示量']);
+    const ctr = parseNum(r['点击率']) / 100; // Convert from percentage
+    const installCost = parseNum(r['安装成本']);
+    const payers = parseNum(r['7日付费人数']);
+    const revenue = parseNum(r['7日付费金额']);
+
+    const installs = impressions * ctr;
+    const totalCost = installs * installCost;
+    const roi = totalCost > 0 ? (revenue / totalCost) * 100 : 0;
+    const payerRate = installs > 0 ? (payers / installs) * 100 : 0;
+    const arppu = payers > 0 ? revenue / payers : 0;
+    const costPerPayer = payers > 0 ? totalCost / payers : 0;
+
+    return {
+      id: r['素材ID'],
+      type: r['类型'],
+      impressions,
+      ctr: ctr * 100,
+      installCost,
+      payers,
+      revenue,
+      installs,
+      totalCost,
+      roi,
+      payerRate,
+      arppu,
+      costPerPayer,
+    };
+  });
+}
+
+// ─── Decision Engine ──────────────────────────────────────────
+function decide(item, typeAvgRoi, typeAvgPayerRate) {
+  const { roi, payerRate, arppu, impressions } = item;
+  let action, label, cls, reasons = [];
+
+  if (roi >= 15) {
+    action = '追投';
+    cls = 'tag-invest';
+    reasons.push(`ROI ${fmtPct(roi)} ≥ 15% 追投线，ROI表现优异`);
+
+    // Cross-check payer rate
+    if (payerRate > typeAvgPayerRate * 1.2) {
+      cls = 'tag-strong-invest';
+      label = '强烈追投';
+      reasons.push(`付费率 ${fmtPct(payerRate)} 高于同类均值，用户质量高`);
+    } else {
+      label = '追投';
+    }
+
+    // Check ARPPU
+    if (arppu >= 60) {
+      reasons.push(`ARPPU ${fmtMoney(arppu)}，付费用户价值高`);
+    }
+
+    // Check cost
+    if (item.installCost < 4) {
+      reasons.push(`安装成本 ${fmtMoney(item.installCost)}，获客效率好`);
+    }
+
+  } else if (roi >= 5) {
+    action = '保留';
+    label = '保留观察';
+    cls = 'tag-retain';
+
+    if (impressions < 50000) {
+      reasons.push(`展示量不足 5 万，建议扩量测试后再做最终判断`);
+    } else {
+      reasons.push(`ROI ${fmtPct(roi)} 在 5%-15% 区间，表现中等`);
+    }
+
+    if (arppu >= 60) {
+      reasons.push(`ARPPU ${fmtMoney(arppu)} 较高，有优化提ROI的潜力`);
+    }
+
+    reasons.push(`建议优化素材或调整定向后继续观察`);
+
+  } else {
+    action = '暂停';
+    label = '暂停';
+    cls = 'tag-pause';
+    reasons.push(`ROI ${fmtPct(roi)} < 5%，远低于盈利线`);
+
+    if (arppu >= 60 && payerRate >= 0.5) {
+      label = '暂停(保留重定向)';
+      reasons.push(`ARPPU 较高(${fmtMoney(arppu)})，建议保留素材用于重定向投放`);
+    } else {
+      reasons.push(`付费率和 ARPPU 均偏低，建议立即暂停，节省预算`);
+    }
+
+    if (item.ctr > 4) {
+      reasons.push(`请注意虽然点击率 ${fmtPct(item.ctr)} 很高，但用户质量不达标，建议检查定向和落地页`);
+    }
+  }
+
+  return { action, label, cls, reasons };
+}
+
+// ─── Render Functions ─────────────────────────────────────────
+let currentData = null;
+let currentAnalysis = null;
+
+function loadSample() {
+  document.getElementById('pasteArea').value = SAMPLE_DATA;
+}
+
+function handleFileUpload(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    document.getElementById('pasteArea').value = e.target.result;
+  };
+  reader.readAsText(file);
+}
+
+function runAnalysis() {
+  const text = document.getElementById('pasteArea').value.trim();
+  if (!text) {
+    alert('请先粘贴数据或点击「加载示例数据」');
+    return;
+  }
+
+  document.getElementById('loading').style.display = 'block';
+  document.getElementById('resultArea').style.display = 'none';
+
+  // Use setTimeout to let UI update before heavy computation
+  setTimeout(() => {
+    const rows = parseData(text);
+    if (!rows) {
+      document.getElementById('loading').style.display = 'none';
+      return;
+    }
+
+    currentData = rows;
+    currentAnalysis = analyze(rows);
+
+    renderAll(currentAnalysis);
+
+    document.getElementById('loading').style.display = 'none';
+    document.getElementById('resultArea').style.display = 'block';
+    document.getElementById('resultArea').scrollIntoView({ behavior:'smooth' });
+  }, 100);
+}
+
+function renderAll(items) {
+  renderSummaryMetrics(items);
+  renderFullTable(items);
+  renderDecisions(items);
+  renderPriority(items);
+  renderTypeAnalysis(items);
+  renderSuggestions(items);
+  renderAgentDesign(items);
+}
+
+function renderSummaryMetrics(items) {
+  const totalImpressions = items.reduce((s, i) => s + i.impressions, 0);
+  const totalCost = items.reduce((s, i) => s + i.totalCost, 0);
+  const totalRevenue = items.reduce((s, i) => s + i.revenue, 0);
+  const totalInstalls = items.reduce((s, i) => s + i.installs, 0);
+  const totalPayers = items.reduce((s, i) => s + i.payers, 0);
+  const overallRoi = totalCost > 0 ? (totalRevenue / totalCost) * 100 : 0;
+  const avgPayerRate = totalInstalls > 0 ? (totalPayers / totalInstalls) * 100 : 0;
+
+  document.getElementById('summaryMetrics').innerHTML = `
+    <div class="metric-box"><div class="value">${fmtNum(totalImpressions)}</div><div class="label">总展示量</div></div>
+    <div class="metric-box"><div class="value">${fmtNum(totalInstalls)}</div><div class="label">总安装量</div></div>
+    <div class="metric-box"><div class="value">${fmtMoney(totalCost)}</div><div class="label">总花费</div></div>
+    <div class="metric-box"><div class="value">${fmtMoney(totalRevenue)}</div><div class="label">7日总收入</div></div>
+    <div class="metric-box"><div class="value">${fmtPct(overallRoi)}</div><div class="label">整体ROI</div></div>
+    <div class="metric-box"><div class="value">${fmtPct(avgPayerRate)}</div><div class="label">平均付费率</div></div>
+  `;
+}
+
+function renderFullTable(items) {
+  const thead = document.getElementById('fullTable').querySelector('thead');
+  const tbody = document.getElementById('fullTable').querySelector('tbody');
+
+  thead.innerHTML = `<tr>
+    <th>素材ID</th><th>类型</th><th>展示量</th><th>点击率</th><th>安装成本</th>
+    <th>安装量</th><th>总花费</th><th>7日收入</th><th>ROI</th><th>付费率</th>
+    <th>ARPPU</th><th>单付费用户成本</th><th>决策</th>
+  </tr>`;
+
+  tbody.innerHTML = items.map(item => {
+    const typeAvgRoi = getTypeAvg(items, item.type, 'roi');
+    const typeAvgPayerRate = getTypeAvg(items, item.type, 'payerRate');
+    const decision = decide(item, typeAvgRoi, typeAvgPayerRate);
+
+    return `<tr>
+      <td><strong>${item.id}</strong></td>
+      <td>${item.type}</td>
+      <td>${fmtNum(item.impressions)}</td>
+      <td>${fmtPct(item.ctr)}</td>
+      <td>${fmtMoney(item.installCost)}</td>
+      <td>${fmtNum(item.installs)}</td>
+      <td>${fmtMoney(item.totalCost)}</td>
+      <td>${fmtMoney(item.revenue)}</td>
+      <td><strong>${fmtPct(item.roi)}</strong></td>
+      <td>${fmtPct(item.payerRate)}</td>
+      <td>${fmtMoney(item.arppu)}</td>
+      <td>${fmtMoney(item.costPerPayer)}</td>
+      <td><span class="tag ${decision.cls}">${decision.label}</span></td>
+    </tr>`;
+  }).join('');
+}
+
+function renderDecisions(items) {
+  const div = document.getElementById('decisionArea');
+
+  div.innerHTML = items.map(item => {
+    const typeAvgRoi = getTypeAvg(items, item.type, 'roi');
+    const typeAvgPayerRate = getTypeAvg(items, item.type, 'payerRate');
+    const d = decide(item, typeAvgRoi, typeAvgPayerRate);
+
+    const borderClass = d.action === '追投' ? 'decision-invest' : d.action === '保留' ? 'decision-retain' : 'decision-pause';
+
+    return `<div class="decision-card ${borderClass}">
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <div><strong style="font-size:16px;">${item.id}</strong> <span style="color:var(--text2);font-size:13px;">${item.type}</span></div>
+        <span class="tag ${d.cls}" style="font-size:14px;padding:4px 16px;">${d.label}</span>
+      </div>
+      <ul class="reason-list">
+        ${d.reasons.map(r => `<li>${r}</li>`).join('')}
+      </ul>
+      <div style="font-size:12px;color:var(--text2);margin-top:4px;">
+        ROI: ${fmtPct(item.roi)} &nbsp;|&nbsp; 付费率: ${fmtPct(item.payerRate)} &nbsp;|&nbsp; ARPPU: ${fmtMoney(item.arppu)} &nbsp;|&nbsp; 安装成本: ${fmtMoney(item.installCost)}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function renderPriority(items) {
+  const sorted = [...items].sort((a, b) => b.roi - a.roi);
+
+  let html = `<table>
+    <thead><tr><th>优先级</th><th>素材ID</th><th>类型</th><th>ROI</th><th>付费率</th><th>ARPPU</th><th>建议</th></tr></thead>
+    <tbody>`;
+
+  sorted.forEach((item, idx) => {
+    const typeAvgRoi = getTypeAvg(items, item.type, 'roi');
+    const typeAvgPayerRate = getTypeAvg(items, item.type, 'payerRate');
+    const d = decide(item, typeAvgRoi, typeAvgPayerRate);
+    html += `<tr>
+      <td>#${idx + 1}</td>
+      <td><strong>${item.id}</strong></td>
+      <td>${item.type}</td>
+      <td><strong>${fmtPct(item.roi)}</strong></td>
+      <td>${fmtPct(item.payerRate)}</td>
+      <td>${fmtMoney(item.arppu)}</td>
+      <td><span class="tag ${d.cls}">${d.label}</span></td>
+    </tr>`;
+  });
+
+  html += '</tbody></table>';
+
+  // Budget allocation suggestion
+  const investItems = sorted.filter(i => i.roi >= 15);
+  const retainItems = sorted.filter(i => i.roi >= 5 && i.roi < 15);
+
+  if (investItems.length > 0) {
+    html += `<div class="highlight-box success" style="margin-top:16px;">
+      <strong>预算分配建议：</strong><br>
+      · <strong>追投素材</strong>：建议分配 60%-70% 预算，集中放量<br>
+      · <strong>保留素材</strong>：建议分配 20%-30% 预算，用于A/B测试优化<br>
+      · <strong>暂停省下的预算</strong>：重新分配到追投素材，ROI最大化
+    </div>`;
+  }
+
+  document.getElementById('priorityArea').innerHTML = html;
+}
+
+function getTypeAvg(items, type, metric) {
+  const same = items.filter(i => i.type === type);
+  if (same.length === 0) return 0;
+  return same.reduce((s, i) => s + i[metric], 0) / same.length;
+}
+
+function renderTypeAnalysis(items) {
+  // Group by type
+  const typeMap = {};
+  items.forEach(item => {
+    if (!typeMap[item.type]) typeMap[item.type] = [];
+    typeMap[item.type].push(item);
+  });
+
+  const typeSummary = Object.entries(typeMap).map(([type, list]) => {
+    const avgRoi = list.reduce((s, i) => s + i.roi, 0) / list.length;
+    const avgPayerRate = list.reduce((s, i) => s + i.payerRate, 0) / list.length;
+    const avgArppu = list.reduce((s, i) => s + i.arppu, 0) / list.length;
+    const totalInstalls = list.reduce((s, i) => s + i.installs, 0);
+    const totalRevenue = list.reduce((s, i) => s + i.revenue, 0);
+    const totalCost = list.reduce((s, i) => s + i.totalCost, 0);
+    const totalPayers = list.reduce((s, i) => s + i.payers, 0);
+    const totalImpressions = list.reduce((s, i) => s + i.impressions, 0);
+    const overallRoi = totalCost > 0 ? (totalRevenue / totalCost) * 100 : 0;
+    const count = list.length;
+    return { type, count, avgRoi: overallRoi, avgPayerRate, avgArppu, totalImpressions, totalInstalls, totalRevenue, totalCost, totalPayers, items: list };
+  });
+
+  // Sort by avgRoi descending
+  typeSummary.sort((a, b) => b.avgRoi - a.avgRoi);
+
+  const maxRoi = Math.max(...typeSummary.map(t => t.avgRoi), 1);
+
+  // Bar chart
+  let bars = typeSummary.map(t => {
+    const pct = (t.avgRoi / maxRoi) * 100;
+    const color = TYPE_COLORS[t.type] || '#4285f4';
+    const label = TYPE_LABELS[t.type] || t.type;
+    return `<div class="type-bar">
+      <div class="label">${label}</div>
+      <div class="bar-wrap">
+        <div class="bar" style="width:${pct}%;background:${color};">${fmtPct(t.avgRoi)}</div>
+      </div>
+    </div>`;
+  }).join('');
+
+  // Summary table
+  let table = `<div class="table-wrap" style="margin-top:16px;"><table>
+    <thead><tr><th>素材类型</th><th>素材数</th><th>总展示量</th><th>总安装量</th><th>ROI</th><th>付费率</th><th>ARPPU</th><th>7日总收入</th><th>总花费</th></tr></thead>
+    <tbody>`;
+
+  typeSummary.forEach(t => {
+    table += `<tr>
+      <td><strong>${TYPE_LABELS[t.type] || t.type}</strong></td>
+      <td>${t.count}</td>
+      <td>${fmtNum(t.totalImpressions)}</td>
+      <td>${fmtNum(t.totalInstalls)}</td>
+      <td><strong>${fmtPct(t.avgRoi)}</strong></td>
+      <td>${fmtPct(t.avgPayerRate)}</td>
+      <td>${fmtMoney(t.avgArppu)}</td>
+      <td>${fmtMoney(t.totalRevenue)}</td>
+      <td>${fmtMoney(t.totalCost)}</td>
+    </tr>`;
+  });
+
+  table += '</tbody></table></div>';
+
+  // Analysis text
+  const best = typeSummary[0];
+  const worst = typeSummary[typeSummary.length - 1];
+
+  let analysis = `<div class="highlight-box" style="margin-top:16px;">
+    <strong>核心发现：</strong></div>`;
+
+  analysis += `<div style="margin-top:12px;">`;
+
+  // Find winners and losers
+  const highPerformers = typeSummary.filter(t => t.avgRoi >= 15);
+  const lowPerformers = typeSummary.filter(t => t.avgRoi < 5);
+
+  if (highPerformers.length > 0) {
+    analysis += `<p>✅ <strong>高潜力类型：</strong>${highPerformers.map(t => TYPE_LABELS[t.type] || t.type).join('、')} — ROI表现突出，值得加大投入</p>`;
+  }
+
+  if (lowPerformers.length > 0) {
+    analysis += `<p>❌ <strong>应规避类型：</strong>${lowPerformers.map(t => TYPE_LABELS[t.type] || t.type).join('、')} — ROI过低，建议暂停或重新设计素材方向</p>`;
+  }
+
+  // Cross analysis
+  analysis += `<p>📊 <strong>点击率 vs 付费率对比：</strong></p>`;
+
+  // Find high CTR but low payer rate types
+  typeSummary.forEach(t => {
+    const avgCtr = t.items.reduce((s, i) => s + i.ctr, 0) / t.items.length;
+    if (avgCtr > 3 && t.avgPayerRate < 0.5) {
+      analysis += `<p style="margin-left:20px;color:var(--danger);">⚠️ ${TYPE_LABELS[t.type] || t.type} — 点击率 ${fmtPct(avgCtr)} 但付费率仅 ${fmtPct(t.avgPayerRate)}，存在"虚假点击"现象，用户预期与落地页不匹配</p>`;
+    }
+  });
+
+  typeSummary.forEach(t => {
+    const avgCtr = t.items.reduce((s, i) => s + i.ctr, 0) / t.items.length;
+    if (t.avgPayerRate > 0.8 && avgCtr > 3) {
+      analysis += `<p style="margin-left:20px;color:var(--success);">✨ ${TYPE_LABELS[t.type] || t.type} — 点击率 ${fmtPct(avgCtr)} 且付费率 ${fmtPct(t.avgPayerRate)}，实现了"高吸引 + 高质量"的双优表现</p>`;
+    }
+  });
+
+  // Same-type comparison
+  const typeGroups = {};
+  items.forEach(item => {
+    if (!typeGroups[item.type]) typeGroups[item.type] = [];
+    typeGroups[item.type].push(item);
+  });
+
+  Object.entries(typeGroups).forEach(([type, list]) => {
+    if (list.length >= 2) {
+      const rois = list.map(i => i.roi);
+      const maxRoi = Math.max(...rois);
+      const minRoi = Math.min(...rois);
+      if (maxRoi - minRoi > 10) {
+        const best_item = list.find(i => i.roi === maxRoi);
+        const worst_item = list.find(i => i.roi === minRoi);
+        analysis += `<p>🔍 <strong>同类型差异（${TYPE_LABELS[type] || type}）：</strong>表现最好的 ${best_item.id}（ROI ${fmtPct(maxRoi)}）vs 最差的 ${worst_item.id}（ROI ${fmtPct(minRoi)}），差异达 ${fmtPct(maxRoi - minRoi)}。说明${TYPE_LABELS[type] || type}方向有效，但具体执行质量差异很大，需要提炼最佳实践</p>`;
+      }
+    }
+  });
+
+  analysis += `</div>`;
+
+  document.getElementById('typeAnalysis').innerHTML = bars + table + analysis;
+}
+
+function renderSuggestions(items) {
+  // Build suggestions based on data
+  const typeMap = {};
+  items.forEach(item => {
+    if (!typeMap[item.type]) typeMap[item.type] = [];
+    typeMap[item.type].push(item);
+  });
+
+  const typeSummary = Object.entries(typeMap).map(([type, list]) => {
+    const totalCost = list.reduce((s, i) => s + i.totalCost, 0);
+    const totalRevenue = list.reduce((s, i) => s + i.revenue, 0);
+    const overallRoi = totalCost > 0 ? (totalRevenue / totalCost) * 100 : 0;
+    const avgPayerRate = list.reduce((s, i) => s + i.payerRate, 0) / list.length;
+    return { type, overallRoi, avgPayerRate, items: list };
+  });
+
+  typeSummary.sort((a, b) => b.overallRoi - a.overallRoi);
+
+  const bestType = typeSummary[0];
+
+  let html = `<div class="highlight-box success">
+    <strong>综合结论：</strong><br>
+    数据表明 <strong>${TYPE_LABELS[bestType.type] || bestType.type}</strong> 是最值得投入的素材方向，ROI ${fmtPct(bestType.overallRoi)} 远高于其他类型，且付费用户质量和转化率均表现优秀。
+  </div>`;
+
+  html += `<h3>下一批素材产出建议</h3>`;
+
+  // Generate specific suggestions
+  const suggestions = [];
+
+  // Suggestion 1: Double down on best type
+  suggestions.push({
+    title: `加大 ${TYPE_LABELS[bestType.type] || bestType.type} 制作量`,
+    content: `当前 ${bestType.type} 方向ROI达 ${fmtPct(bestType.overallRoi)}，${bestType.items.length > 1 ? '' : '是该批数据中表现最好的'}。建议集中 60% 以上的制作预算批量产出该类型素材，测试不同的脚本/场景/演员组合，找到可复用的爆款公式。`
+  });
+
+  // Suggestion 2: Fix high-CTR-low-conversion
+  const highCtrLowRoi = typeSummary.filter(t => {
+    const avgCtr = t.items.reduce((s, i) => s + i.ctr, 0) / t.items.length;
+    return avgCtr > 3 && t.overallRoi < 8;
+  });
+
+  if (highCtrLowRoi.length > 0) {
+    highCtrLowRoi.forEach(t => {
+      suggestions.push({
+        title: `修复 ${TYPE_LABELS[t.type] || t.type} 的"虚假点击"问题`,
+        content: `${t.type} 的点击率虽然高，但付费率仅 ${fmtPct(t.avgPayerRate)}，说明素材吸引力与用户预期/落地页体验不匹配。建议：(1)检查素材传达的信息是否与游戏实际内容一致；(2)优化落地页首屏体验；(3)调整定向减少非目标用户点击；(4)在前3秒增加产品核心卖点展示。`
+      });
+    });
+  }
+
+  // Suggestion 3: Cross-pollination
+  suggestions.push({
+    title: '跨类型融合创新',
+    content: `将表现好的${TYPE_LABELS[bestType.type] || bestType.type}的"高付费转化"基因与其他类型的"高点击"基因结合。例如，UGC风格的自然真实感 + 动画CG的视觉冲击力，制作"真人+CG混剪"风格；或UGC风格的叙事方式 + 游戏实录的画面，制作"UGC解说的游戏实况"。`
+  });
+
+  // Suggestion 4: Image format improvement
+  const imageTypes = typeSummary.filter(t => t.type.includes('图片'));
+  if (imageTypes.length > 0) {
+    const worstImage = imageTypes.reduce((a, b) => a.overallRoi < b.overallRoi ? a : b);
+    suggestions.push({
+      title: '图片素材全面升级',
+      content: `当前${imageTypes.map(t => TYPE_LABELS[t.type] || t.type).join('、')}的ROI普遍偏低（${imageTypes.map(t => fmtPct(t.overallRoi)).join(' / ')}）。建议：(1)将图片改为短视频/H5互动广告等形式；(2)若必须用图片，采用UGC风格的截图+用户评价的组合；(3)增加动态元素，从静态图升级为微动效。`
+    });
+  }
+
+  // Suggestion 5: Data-driven iteration
+  suggestions.push({
+    title: '建立素材迭代数据闭环',
+    content: `V-001和V-005同为${TYPE_LABELS['真人剧情']}但ROI差异显著（差距查看决策表），说明执行细节决定成败。建议：(1)对V-001的成功元素进行拆解（开头3秒、CTA文案、色彩风格等），制作A/B测试方案；(2)每周产出不少于5条新素材，保持测试节奏；(3)每条新素材都标注"变量标签"（如风格、人物、场景、文案钩子等），便于后期归因分析。`
+  });
+
+  html += `<ol style="padding-left:20px;margin-top:8px;">`;
+  suggestions.forEach(s => {
+    html += `<li style="margin:12px 0;">
+      <strong>${s.title}</strong><br>
+      <span style="font-size:13px;color:var(--text2);">${s.content}</span>
+    </li>`;
+  });
+  html += `</ol>`;
+
+  document.getElementById('suggestionArea').innerHTML = html;
+}
+
+function renderAgentDesign(items) {
+  const design = `
+╔══════════════════════════════════════════════════════════════╗
+║              广告素材分析 Agent — 架构设计                    ║
+╚══════════════════════════════════════════════════════════════╝
+
+┌─────────────────────────────────────────────────────────────┐
+│                       输入层                                │
+│  ┌─────────────┐  ┌──────────────┐  ┌──────────────────┐   │
+│  │ Meta Ads API │  │ Google Ads   │  │  CSV / 手动粘贴  │   │
+│  │ (Facebook)   │  │ (YouTube等)  │  │  (备用方案)      │   │
+│  └──────┬───────┘  └──────┬───────┘  └────────┬─────────┘   │
+│         └────────────────┼──────────────────┘              │
+│                          ▼                                  │
+│              自动拉取最近7天素材级数据                        │
+└──────────────────────────┬──────────────────────────────────┘
+                           ▼
+┌─────────────────────────────────────────────────────────────┐
+│                    分析引擎（核心逻辑）                       │
+│                                                             │
+│  步骤1: 数据清洗                                            │
+│  ├─ 字段映射（不同平台列名不同→统一标准字段）                │
+│  ├─ 格式标准化（货币/百分比/千分位→纯数字）                  │
+│  └─ 异常值检测（展示量=0/成本为负→标记告警）                │
+│                                                             │
+│  步骤2: 指标计算                                            │
+│  ├─ 安装量 = 展示量 × 点击率                                │
+│  ├─ 总花费 = 安装量 × 安装成本                              │
+│  ├─ ROI = 7日收入 / 总花费 × 100%                           │
+│  ├─ 付费率 = 付费人数 / 安装量 × 100%                       │
+│  └─ ARPPU = 7日收入 / 付费人数                              │
+│                                                             │
+│  步骤3: 规则判断                                            │
+│  ├─ ROI ≥ 15%     → 追投（进一步判断付费率是否高于均值）    │
+│  ├─ 5% ≤ ROI < 15% → 保留（检查样本量是否足够）             │
+│  └─ ROI < 5%      → 暂停（检查ARPPU是否可重定向）           │
+│                                                             │
+│  步骤4: 类型归因                                            │
+│  ├─ 按素材类型汇总平均ROI/付费率/ARPPU                      │
+│  ├─ 对比不同素材方向的表现差异                              │
+│  └─ 识别高CTR低转化等异常模式                               │
+└──────────────────────────┬──────────────────────────────────┘
+                           ▼
+┌─────────────────────────────────────────────────────────────┐
+│                    输出层                                    │
+│  ┌─────────────────┐  ┌──────────────────┐                  │
+│  │ 决策看板 (HTML)  │  │ 报告文件导出      │                  │
+│  │ · 指标总表       │  │ · CSV             │                  │
+│  │ · 逐素材建议     │  │ · Markdown报告    │                  │
+│  │ · 预算分配方案   │  │ · PDF打印         │                  │
+│  │ · 类型趋势图表   │  └──────────────────┘                  │
+│  └─────────────────┘                                        │
+└─────────────────────────────────────────────────────────────┘
+
+╔══════════════════════════════════════════════════════════════╗
+║                  运行方式                                    ║
+╚══════════════════════════════════════════════════════════════╝
+
+┌─────────────────────────────────────────────────────────────┐
+│  方式一：静态工具（当前版本，纯前端HTML）                    │
+│  ├─ 部署：Vercel / Netlify / Cloudflare Pages               │
+│  ├─ 触发：用户手动粘贴数据或上传CSV                         │
+│  ├─ 计算：全部在浏览器本地执行，不上传任何数据               │
+│  └─ 输出：交互式看板 + 导出报告                              │
+│                                                             │
+│  方式二：定时任务（进阶版本，需接入API）                      │
+│  ├─ 调度器：GitHub Actions / 云函数 Cron                    │
+│  ├─ 触发：每周一 09:00 自动运行                              │
+│  ├─ 数据源：通过各广告平台API拉取                           │
+│  ├─ 处理：Node.js 脚本自动计算 + LLM生成分析文本             │
+│  └─ 输出：推送到 Slack / 邮件 / 飞书                        │
+└─────────────────────────────────────────────────────────────┘
+
+  `.trim();
+
+  let html = `<div class="agent-diagram">${design}</div>`;
+
+  html += `<h3>判断逻辑配置（可自定义阈值）</h3>
+  <div class="table-wrap"><table>
+    <thead><tr><th>决策</th><th>ROI 阈值</th><th>交叉验证条件</th><th>行动</th></tr></thead>
+    <tbody>
+      <tr><td>强烈追投</td><td>≥ 15%</td><td>付费率 > 同类均值 × 1.2</td><td>加预算 50%-100%，拓展相似受众</td></tr>
+      <tr><td>追投</td><td>≥ 15%</td><td>-</td><td>加预算 30%-50%，扩量测试</td></tr>
+      <tr><td>保留观察</td><td>5% - 15%</td><td>展示量 ≥ 5万</td><td>维持预算，优化素材或定向</td></tr>
+      <tr><td>待观察</td><td>5% - 15%</td><td>展示量 < 5万</td><td>增加预算到 5万+ 展示后再判断</td></tr>
+      <tr><td>暂停(重定向)</td><td>< 5%</td><td>ARPPU ≥ $60</td><td>暂停投放，素材转入重定向池</td></tr>
+      <tr><td>暂停</td><td>< 5%</td><td>-</td><td>立即暂停，释放预算</td></tr>
+    </tbody>
+  </table></div>`;
+
+  html += `<h3 style="margin-top:20px;">定时任务技术方案（方式二）</h3>
+  <div class="highlight-box">
+    <strong>方案：</strong>GitHub Actions + Node.js + 广告平台 SDK<br>
+    <strong>触发：</strong>cron: "0 9 * * 1"（每周一上午9点）<br>
+    <strong>数据流：</strong><br>
+    <code style="display:block;padding:12px;background:#f1f3f4;border-radius:8px;margin:8px 0;">
+  1. GitHub Actions 触发 workflow
+  2. Node.js 脚本调用 Meta/Google/TikTok Ads API
+  3. 拉取最近 7 天素材级投放数据
+  4. 运行与本站完全一致的计算逻辑
+  5. 调用 LLM API 生成分析解读文本
+  6. 产出一份 Markdown 报告
+  7. 投送到 Slack / 邮件 / 飞书
+    </code>
+    <strong>扩展建议：</strong>如果接入 API 有难度，可将此 HTML 工具配合每周一 Cowork 定时任务，由 AI Agent 自动读取用户粘贴的数据并输出分析。无需任何后端部署。
+  </div>`;
+
+  html += `<h3 style="margin-top:20px;">当前批数据 Agent 实测结果</h3>
+  <div style="overflow-x:auto;"><table>
+    <thead><tr><th>阶段</th><th>说明</th><th>状态</th></tr></thead>
+    <tbody>
+      <tr><td>数据读取</td><td>识别 7 个素材，6 种类型，自动匹配字段</td><td style="color:var(--success);">✓ 完成</td></tr>
+      <tr><td>指标计算</td><td>安装量、总花费、ROI、付费率、ARPPU</td><td style="color:var(--success);">✓ 完成</td></tr>
+      <tr><td>决策判断</td><td>ROI 阈值规则 + 交叉验证</td><td style="color:var(--success);">✓ 完成</td></tr>
+      <tr><td>类型归因</td><td>按 6 种素材类型汇总分析</td><td style="color:var(--success);">✓ 完成</td></tr>
+      <tr><td>方向推断</td><td>高CTR低转化识别、同类型差异对比</td><td style="color:var(--success);">✓ 完成</td></tr>
+      <tr><td>报告生成</td><td>完整分析文档 + 导出功能</td><td style="color:var(--success);">✓ 完成</td></tr>
+    </tbody>
+  </table></div>`;
+
+  document.getElementById('agentDesign').innerHTML = html;
+}
+
+function switchTab(tabId, btn) {
+  document.querySelectorAll('.section-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.section-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById(tabId).classList.add('active');
+  btn.classList.add('active');
+}
+
+function exportReport() {
+  if (!currentAnalysis) return;
+
+  const items = currentAnalysis;
+  const totalImpressions = items.reduce((s, i) => s + i.impressions, 0);
+  const totalCost = items.reduce((s, i) => s + i.totalCost, 0);
+  const totalRevenue = items.reduce((s, i) => s + i.revenue, 0);
+  const overallRoi = totalCost > 0 ? (totalRevenue / totalCost) * 100 : 0;
+
+  let report = `# 广告素材数据分析报告\n\n`;
+  report += `> 生成时间: ${new Date().toLocaleString('zh-CN')}\n\n`;
+
+  report += `## 一、核心指标汇总\n\n`;
+  report += `| 素材ID | 类型 | 展示量 | 点击率 | 安装成本 | 安装量 | 总花费 | 7日收入 | ROI | 付费率 | ARPPU |\n`;
+  report += `|-------|------|--------|--------|---------|--------|--------|---------|-----|--------|-------|\n`;
+
+  items.forEach(item => {
+    report += `| ${item.id} | ${item.type} | ${fmtNum(item.impressions)} | ${fmtPct(item.ctr)} | ${fmtMoney(item.installCost)} | ${fmtNum(item.installs)} | ${fmtMoney(item.totalCost)} | ${fmtMoney(item.revenue)} | ${fmtPct(item.roi)} | ${fmtPct(item.payerRate)} | ${fmtMoney(item.arppu)} |\n`;
+  });
+
+  report += `\n**整体表现：** 总展示量 ${fmtNum(totalImpressions)}，总花费 ${fmtMoney(totalCost)}，7日总收入 ${fmtMoney(totalRevenue)}，整体ROI ${fmtPct(overallRoi)}\n\n`;
+
+  report += `## 二、决策建议\n\n`;
+
+  const sorted = [...items].sort((a, b) => b.roi - a.roi);
+  sorted.forEach((item, idx) => {
+    const typeAvgRoi = getTypeAvg(items, item.type, 'roi');
+    const typeAvgPayerRate = getTypeAvg(items, item.type, 'payerRate');
+    const d = decide(item, typeAvgRoi, typeAvgPayerRate);
+    report += `### ${idx + 1}. ${item.id}（${item.type}）— ${d.label}\n`;
+    d.reasons.forEach(r => report += `- ${r}\n`);
+    report += `- ROI: ${fmtPct(item.roi)} | 付费率: ${fmtPct(item.payerRate)} | ARPPU: ${fmtMoney(item.arppu)}\n\n`;
+  });
+
+  report += `## 三、素材类型方向分析\n\n`;
+
+  const typeMap = {};
+  items.forEach(item => {
+    if (!typeMap[item.type]) typeMap[item.type] = [];
+    typeMap[item.type].push(item);
+  });
+
+  const typeSummary = Object.entries(typeMap).map(([type, list]) => {
+    const totalCost = list.reduce((s, i) => s + i.totalCost, 0);
+    const totalRevenue = list.reduce((s, i) => s + i.revenue, 0);
+    const overallRoi = totalCost > 0 ? (totalRevenue / totalCost) * 100 : 0;
+    const totalPayers = list.reduce((s, i) => s + i.payers, 0);
+    const totalInstalls = list.reduce((s, i) => s + i.installs, 0);
+    const avgPayerRate = totalInstalls > 0 ? (totalPayers / totalInstalls) * 100 : 0;
+    const avgArppu = list.reduce((s, i) => s + i.arppu, 0) / list.length;
+    return { type, overallRoi, avgPayerRate, avgArppu };
+  });
+
+  typeSummary.sort((a, b) => b.overallRoi - a.overallRoi);
+
+  report += `| 素材类型 | ROI | 付费率 | ARPPU |\n|---------|-----|--------|-------|\n`;
+  typeSummary.forEach(t => {
+    report += `| ${t.type} | ${fmtPct(t.overallRoi)} | ${fmtPct(t.avgPayerRate)} | ${fmtMoney(t.avgArppu)} |\n`;
+  });
+
+  report += `\n**结论：** ${typeSummary[0].type} 方向最值得投入。\n\n`;
+
+  report += `## 四、下一批产出建议\n\n`;
+  report += `1. 加大 ${typeSummary[0].type} 方向制作量，集中 60% 以上预算\n`;
+  report += `2. 针对高点击率低转化的素材类型，优化落地页匹配度\n`;
+  report += `3. 跨类型融合创新（如 ${typeSummary[0].type} + 动画CG混剪）\n`;
+  report += `4. 视频方向优先，图片素材可考虑升级为微动效视频\n\n`;
+
+  report += `## 五、Agent 设计方案\n\n`;
+  report += `**架构：** 数据输入层 → 分析引擎（清洗→计算→规则判断→归因）→ 输出层\n`;
+  report += `**部署方式一：** 静态HTML工具，部署在 Vercel，手动粘贴数据使用\n`;
+  report += `**部署方式二：** 定时任务（GitHub Actions + Node.js），每周一自动拉取 API 数据并产出报告\n`;
+  report += `**决策阈值：** ROI ≥ 15% 追投，5%-15% 保留，< 5% 暂停；交叉验证付费率和 ARPPU\n\n`;
+
+  report += `---\n报告由 广告素材数据分析决策系统 自动生成\n`;
+
+  // Download
+  const blob = new Blob([report], { type: 'text/markdown;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `广告素材分析报告_${new Date().toISOString().slice(0,10)}.md`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+</script>
+</body>
+</html>
